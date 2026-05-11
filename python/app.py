@@ -1,11 +1,22 @@
 from flask import Flask, request, jsonify
+import mysql.connector
 
 app = Flask(__name__)
 
+# ========================
+# KONFIGURASI DATABASE
+# ========================
+db_config = {
+    "host":     "localhost",
+    "user":     "root",
+    "password": "",
+    "database": "ml_service"
+}
+
+# ========================
+# LOGIKA KLASIFIKASI
+# ========================
 def klasifikasi(ph, lembap_udara):
-    """
-    Logika klasifikasi sederhana berdasarkan pH dan kelembapan udara.
-    """
     if ph < 5.5:
         return "Terlalu Asam", 0.92
     elif ph > 7.5:
@@ -18,6 +29,9 @@ def klasifikasi(ph, lembap_udara):
         return "Ideal", 0.85
 
 
+# ========================
+# ENDPOINT
+# ========================
 @app.route('/prediksi', methods=['POST'])
 def prediksi():
     data = request.get_json()
@@ -30,15 +44,40 @@ def prediksi():
         return jsonify({"error": "Field 'ph' dan 'lembap_udara' wajib diisi"}), 400
 
     try:
-        ph = float(data["ph"])
+        ph           = float(data["ph"])
         lembap_udara = float(data["lembap_udara"])
     except (ValueError, TypeError):
         return jsonify({"error": "Nilai 'ph' dan 'lembap_udara' harus berupa angka"}), 400
 
+    # Klasifikasi
     hasil, confidence = klasifikasi(ph, lembap_udara)
 
+    # ========================
+    # SIMPAN KE DATABASE
+    # ========================
+    try:
+        conn   = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """INSERT INTO hasil_prediksi (ph, lembap_udara, prediksi, nilai_confidence, created_at)
+               VALUES (%s, %s, %s, %s, NOW())""",
+            (ph, lembap_udara, hasil, confidence)
+        )
+
+        conn.commit()
+        inserted_id = cursor.lastrowid
+
+    except mysql.connector.Error as e:
+        return jsonify({"error": "Gagal menyimpan ke database", "detail": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
     return jsonify({
-        "prediksi": hasil,
+        "id":               inserted_id,
+        "prediksi":         hasil,
         "nilai_confidence": confidence
     }), 200
 
