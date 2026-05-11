@@ -6,9 +6,9 @@ app = Flask(__name__)
 
 db_config = {
     "host":     "localhost",
-    "user":     "mahasiswa",
-    "password": "akucintafik",
-    "database": "2410511078_ml_service"
+    "user":     "root",
+    "password": "",
+    "database": "ml_service"
 }
 
 
@@ -38,6 +38,7 @@ def prediksi():
         return jsonify({"error": "Field 'ph' dan 'lembap_udara' wajib diisi"}), 400
 
     try:
+        
         ph           = float(data["ph"])
         lembap_udara = float(data["lembap_udara"])
     except (ValueError, TypeError):
@@ -48,6 +49,8 @@ def prediksi():
 
    
     try:
+        conn   = None
+        cursor = None
         conn   = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
@@ -64,8 +67,8 @@ def prediksi():
         return jsonify({"error": "Gagal menyimpan ke database", "detail": str(e)}), 500
 
     finally:
-        cursor.close()
-        conn.close()
+        if cursor: cursor.close()
+        if conn:   conn.close()
 
     return jsonify({
         "id":               inserted_id,
