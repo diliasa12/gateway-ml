@@ -3,19 +3,15 @@ import mysql.connector
 
 app = Flask(__name__)
 
-# ========================
-# KONFIGURASI DATABASE
-# ========================
+
 db_config = {
     "host":     "localhost",
-    "user":     "root",
-    "password": "",
-    "database": "ml_service"
+    "user":     "mahasiswa",
+    "password": "akucintafik",
+    "database": "2410511078_ml_service"
 }
 
-# ========================
-# LOGIKA KLASIFIKASI
-# ========================
+
 def klasifikasi(ph, lembap_udara):
     if ph < 5.5:
         return "Terlalu Asam", 0.92
@@ -29,9 +25,7 @@ def klasifikasi(ph, lembap_udara):
         return "Ideal", 0.85
 
 
-# ========================
-# ENDPOINT
-# ========================
+
 @app.route('/prediksi', methods=['POST'])
 def prediksi():
     data = request.get_json()
@@ -52,9 +46,7 @@ def prediksi():
     # Klasifikasi
     hasil, confidence = klasifikasi(ph, lembap_udara)
 
-    # ========================
-    # SIMPAN KE DATABASE
-    # ========================
+   
     try:
         conn   = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
